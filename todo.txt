@@ -1,0 +1,10 @@
+
+This is the header you get from bitcoin-cli getblockheader:
+02000000ed2223ddcbba95c7cce6cc31ce5ca7463be8ec7720232acb0000000000000000f9bf954db4429571d2b379e49c624c3c9d0d8d9fcb91f8123f22e2558ba8dab5003e395399db0019146ae23f
+
+And this is the data that you get from levelDB:
+88935490f27e1d1680008296a71bb8ad6c02000000ed2223ddcbba95c7cce6cc31ce5ca7463be8ec7720232acb0000000000000000f9bf954db4429571d2b379e49c624c3c9d0d8d9fcb91f8123f22e2558ba8dab5003e395399db0019146ae23f
+there's overlap, see:
+----------------------------------02000000ed2223ddcbba95c7cce6cc31ce5ca7463be8ec7720232acb0000000000000000f9bf954db4429571d2b379e49c624c3c9d0d8d9fcb91f8123f22e2558ba8dab5003e395399db0019146ae23f
+
+so looks like the header is *after* all the other data.
