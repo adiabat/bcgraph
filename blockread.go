@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/btcsuite/btcd/wire"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -19,6 +21,7 @@ var (
 	blockDir      = "/media/hdd1/bitcoin/blocks/index"
 	blockIndexDir = "/media/hdd1/bitcoin/blocks/index"
 	chainStateDir = "/media/hdd1/bitcoin/chainstate"
+	indexFile     = "blockPositionIndex"
 )
 
 func blockread() error {
@@ -36,18 +39,31 @@ func blockread() error {
 	hmap := dumpDBAllHeaders(blockIndexDb)
 	blockIndexDb.Close()
 
-	fmt.Printf("hmap len %d, tip %x\n", len(hmap), tip)
-	fval := hmap[tip]
-	fmt.Printf("last val %x\n", fval)
-
-	buildChainBackwards(tip, hmap)
+	buildChainBackwards(tip, hmap, indexFile)
 	return nil
 }
 
-func buildChainBackwards(tip [32]byte, hmap map[[32]byte][]byte) {
+func buildChainBackwards(tip [32]byte, hmap map[[32]byte][]byte, oufile string) {
+	/*
+		   The data format coming out of the block index db:
+		key: 'b', then 32 byte block hash (backwards)
+		value: varint encoding of
+			210100 (shrug)
+			block height
+			157 (shrug)
+			number of txs in block
+			blk____.dat file where this block shows up
+			offset within that file
+		then 80 byte block header
+	*/
 
+	f, err := os.OpenFile(oufile, os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		panic(err)
+	}
 	h := tip
-	height := int64(9)
+	var chunk6 [6]byte
+	height := int64(99)
 	for height > 1 { // stop when you get to height=1
 		v := hmap[h]
 		buf := bytes.NewBuffer(v[len(v)-80:])
@@ -64,9 +80,14 @@ func buildChainBackwards(tip [32]byte, hmap map[[32]byte][]byte) {
 		_, _ = varIntToInt(xbuf)
 		filenum, _ := varIntToInt(xbuf)
 		fileoffset, _ := varIntToInt(xbuf)
-		fmt.Printf("%x h:%d\tfile:%d\toff:%d\n", h, height, filenum, fileoffset)
 
-		h = hed.PrevBlock
+		binary.BigEndian.PutUint16(chunk6[0:2], uint16(filenum))
+		binary.BigEndian.PutUint32(chunk6[2:6], uint32(fileoffset))
+		_, err = f.WriteAt(chunk6[:], height*6)
+		if err != nil {
+			panic(err)
+		}
+		h = hed.PrevBlock // on to the next height
 	}
 }
 
