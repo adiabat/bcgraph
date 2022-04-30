@@ -17,7 +17,7 @@ var (
 	indexFile     = "blockPositionIndex"
 )
 */
-func txStream() {
+func txStream(txChan chan *wire.MsgTx) {
 	idxFile, err := os.Open(indexFile)
 	if err != nil {
 		panic(err)
@@ -64,7 +64,30 @@ func txStream() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("%s\n", block.BlockHash().String())
-	}
 
+		// fmt.Printf("%s\n", block.BlockHash().String())
+		for _, tx := range block.Transactions {
+			txChan <- tx
+		}
+	}
+}
+
+func txPrinter(txChan chan *wire.MsgTx) {
+	for {
+		tx := <-txChan
+		fmt.Printf("--------%s\t%d in %d out\n", tx.TxHash().String(), len(tx.TxIn), len(tx.TxOut))
+		for row := 0; row < len(tx.TxIn) || row < len(tx.TxOut); row++ {
+			if row < len(tx.TxIn) {
+				fmt.Printf("%s -> ", tx.TxIn[row].PreviousOutPoint.String())
+			} else {
+				fmt.Printf("\t\t\t\t\t\t\t\t -> ")
+			}
+			if row < len(tx.TxOut) {
+				fmt.Printf("%x:%d\n", tx.TxOut[row].PkScript, tx.TxOut[row].Value)
+			} else {
+				fmt.Printf("\n")
+			}
+		}
+		fmt.Printf("\n")
+	}
 }

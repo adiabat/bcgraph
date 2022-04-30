@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"os"
+
+	"github.com/btcsuite/btcd/wire"
 )
 
 var (
@@ -17,5 +19,9 @@ func main() {
 	if errors.Is(err, os.ErrNotExist) {
 		buildBlockIndex()
 	}
-	txStream()
+
+	txChan := make(chan *wire.MsgTx, 8)
+	go txPrinter(txChan)
+
+	txStream(txChan)
 }
