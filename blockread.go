@@ -17,14 +17,7 @@ import (
 https://bitcoin.stackexchange.com/questions/28168/what-are-the-keys-used-in-the-blockchain-leveldb-ie-what-are-the-keyvalue-pair
 */
 
-var (
-	blockDir      = "/media/hdd1/bitcoin/blocks/index"
-	blockIndexDir = "/media/hdd1/bitcoin/blocks/index"
-	chainStateDir = "/media/hdd1/bitcoin/chainstate"
-	indexFile     = "blockPositionIndex"
-)
-
-func blockread() error {
+func buildBlockIndex() error {
 	chainstateDb, err := OpenDB(chainStateDir)
 	if err != nil {
 		return err

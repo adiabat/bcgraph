@@ -1,10 +1,21 @@
 package main
 
 import (
-	"fmt"
+	"errors"
+	"os"
+)
+
+var (
+	blockDir      = "/media/hdd1/bitcoin/blocks"
+	blockIndexDir = "/media/hdd1/bitcoin/blocks/index"
+	chainStateDir = "/media/hdd1/bitcoin/chainstate"
+	indexFile     = "blockPositionIndex"
 )
 
 func main() {
-	fmt.Printf("helowrld\n")
-	blockread()
+	_, err := os.Stat(indexFile)
+	if errors.Is(err, os.ErrNotExist) {
+		buildBlockIndex()
+	}
+	txStream()
 }
