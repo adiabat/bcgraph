@@ -124,8 +124,8 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 		// fmt.Printf("%s\n", block.BlockHash().String())
 		for _, tx := range block.Transactions {
 			hash := tx.TxHash().String()
-			fromNodes := make([]string, len(block.Transactions))
-			toNodes := make([]string, len(block.Transactions))
+			fromNodes := make([]string, 0)
+			toNodes := make([]string, 0)
 			for row := 0; row < len(tx.TxIn) || row < len(tx.TxOut); row++ {
 				//fmt.Println(m)
 				if row < len(tx.TxIn) {
@@ -133,8 +133,15 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 					//s := hash + index
 					//fmt.Println("looking at in")
 					//fmt.Println(tx.TxIn[row].PreviousOutPoint.String())
-					inAddress, _ := m[tx.TxIn[row].PreviousOutPoint.String()]
-					fromNodes = append(fromNodes, inAddress)
+					inAddress, pres := m[tx.TxIn[row].PreviousOutPoint.String()]
+					/*if pres {
+						fmt.Println(inAddress)
+					}*/
+					if pres {
+						//fmt.Println(inAddress)
+						fromNodes = append(fromNodes, inAddress)
+					}
+
 					//fmt.Printf("%s -> ", tx.TxIn[row].PreviousOutPoint.String())
 				} else {
 					//fmt.Printf("\t\t\t\t\t\t\t\t -> ")
@@ -144,17 +151,32 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 					index := fmt.Sprintf("%d", row)
 					s := hash + ":" + index
 					address := fmt.Sprintf("%x", tx.TxOut[row].PkScript)
+					amt := fmt.Sprintf("%d", tx.TxOut[row].Value)
 					//fmt.Println(s)
 					m[s] = address
-					toNodes = append(toNodes, address)
+					toNodes = append(toNodes, address+" "+amt)
 				} else {
 					//fmt.Printf("\n")
 				}
 			}
-			fmt.Println("edges from ")
+			/*fmt.Println("edges from ")
 			fmt.Println(fromNodes)
 			fmt.Println(" to ")
-			fmt.Println(toNodes)
+			fmt.Println(toNodes)*/
+			/*if len(fromNodes) != 0 {
+				fmt.Println(len(fromNodes))
+				fmt.Println(len(toNodes))
+				fmt.Println()
+			}*/
+			if len(fromNodes) != 0 {
+				for i := 0; i < len(fromNodes); i++ {
+					for j := 0; j < len(toNodes); j++ {
+						//fmt.Println(fromNodes[i])
+						fmt.Println(fromNodes[i] + " " + toNodes[j])
+					}
+					//fmt.Println(fromNodes[i])
+				}
+			}
 		}
 	}
 }
