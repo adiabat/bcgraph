@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -28,7 +29,7 @@ func txStream(txChan chan *wire.MsgTx) {
 		panic(err)
 	}
 	//maxHeight := info.Size() / 6 // max height based on index file size
-	maxHeight := 100
+	maxHeight := 100000
 	curBlockFile := new(os.File)
 	curBlockFileNum := uint16(1 << 15)
 
@@ -72,8 +73,25 @@ func txStream(txChan chan *wire.MsgTx) {
 	}
 }
 
+type outpointHash [16]byte
+type pksHash [16]byte
+
+func (p pksHash) toString() string {
+	return fmt.Sprintf("%x", p[:])
+}
+
+func hashOutpoint(op wire.OutPoint) (oh outpointHash) {
+	var opBytes [36]byte
+	copy(opBytes[:32], op.Hash[:])
+	binary.BigEndian.PutUint32(opBytes[32:], op.Index)
+	return md5.Sum(opBytes[:])
+}
+func hashPKS(pks []byte) pksHash {
+	return md5.Sum(pks)
+}
+
 func graphGenerate(txChan chan *wire.MsgTx) {
-	m := make(map[string]string)
+	m := make(map[outpointHash]pksHash)
 	idxFile, err := os.Open(indexFile)
 	if err != nil {
 		panic(err)
@@ -84,7 +102,7 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 		panic(err)
 	}
 	//maxHeight := info.Size() / 6 // max height based on index file size
-	maxHeight := 8000
+	maxHeight := 100000
 
 	curBlockFile := new(os.File)
 	curBlockFileNum := uint16(1 << 15)
@@ -123,9 +141,9 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 		}
 		// fmt.Printf("%s\n", block.BlockHash().String())
 		for _, tx := range block.Transactions {
-			hash := tx.TxHash().String()
-			fromNodes := make([]string, 0)
-			toNodes := make([]string, 0)
+			hash := tx.TxHash()
+			fromNodes := make([]pksHash, 0)
+			toNodes := make([]pksHash, 0)
 			for row := 0; row < len(tx.TxIn) || row < len(tx.TxOut); row++ {
 				//fmt.Println(m)
 				if row < len(tx.TxIn) {
@@ -133,28 +151,25 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 					//s := hash + index
 					//fmt.Println("looking at in")
 					//fmt.Println(tx.TxIn[row].PreviousOutPoint.String())
-					inAddress, pres := m[tx.TxIn[row].PreviousOutPoint.String()]
+					prevAddress, pres :=
+						m[hashOutpoint(tx.TxIn[row].PreviousOutPoint)]
 					/*if pres {
 						fmt.Println(inAddress)
 					}*/
 					if pres {
 						//fmt.Println(inAddress)
-						fromNodes = append(fromNodes, inAddress)
+						fromNodes = append(fromNodes, prevAddress)
 					}
-
-					//fmt.Printf("%s -> ", tx.TxIn[row].PreviousOutPoint.String())
 				} else {
 					//fmt.Printf("\t\t\t\t\t\t\t\t -> ")
 				}
 				if row < len(tx.TxOut) {
-					//fmt.Printf("%x:%d\n", tx.TxOut[row].PkScript, tx.TxOut[row].Value)
-					index := fmt.Sprintf("%d", row)
-					s := hash + ":" + index
-					address := fmt.Sprintf("%x", tx.TxOut[row].PkScript)
-					amt := fmt.Sprintf("%d", tx.TxOut[row].Value)
+					op := hashOutpoint(*wire.NewOutPoint(&hash, uint32(row)))
+					// address := fmt.Sprintf("%x", tx.TxOut[row].PkScript)
+					// amt := fmt.Sprintf("%d", tx.TxOut[row].Value)
 					//fmt.Println(s)
-					m[s] = address
-					toNodes = append(toNodes, address+" "+amt)
+					m[op] = hashPKS(tx.TxOut[row].PkScript)
+					toNodes = append(toNodes, m[op])
 				} else {
 					//fmt.Printf("\n")
 				}
@@ -172,7 +187,8 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 				for i := 0; i < len(fromNodes); i++ {
 					for j := 0; j < len(toNodes); j++ {
 						//fmt.Println(fromNodes[i])
-						fmt.Println(fromNodes[i] + " " + toNodes[j])
+						fmt.Println(
+							fromNodes[i].toString() + " " + toNodes[j].toString())
 					}
 					//fmt.Println(fromNodes[i])
 				}
