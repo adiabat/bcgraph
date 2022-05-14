@@ -21,8 +21,6 @@ func main() {
 	}
 
 	txChan := make(chan *wire.MsgTx, 8)
-	go txPrinter(txChan)
-
-	//txStream(txChan)
-	graphGenerate(txChan)
+	go graphGenerate(txChan)
+	txStream(txChan)
 }
