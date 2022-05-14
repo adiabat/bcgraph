@@ -4,20 +4,13 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 
 	"github.com/btcsuite/btcd/wire"
 )
 
-/*
-var (
-	blockDir      = "/media/hdd1/bitcoin/blocks"
-	blockIndexDir = "/media/hdd1/bitcoin/blocks/index"
-	chainStateDir = "/media/hdd1/bitcoin/chainstate"
-	indexFile     = "blockPositionIndex"
-)
-*/
 func txStream(txChan chan *wire.MsgTx) {
 	idxFile, err := os.Open(indexFile)
 	if err != nil {
@@ -77,6 +70,10 @@ type outpointHash [16]byte
 type pksHash [16]byte
 
 func (p pksHash) toString() string {
+	if dec {
+		i := new(big.Int)
+		return i.SetBytes(p[:]).String()
+	}
 	return fmt.Sprintf("%x", p[:])
 }
 
@@ -112,7 +109,20 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 				toNodes = append(toNodes, m[op])
 			}
 		}
-		if len(fromNodes) != 0 {
+		// print out in clique format
+		if len(fromNodes)+len(toNodes) == 1 {
+			// fmt.Printf("%s has 1 node\n", tx.TxHash().String())
+			continue
+		}
+		if clique {
+			for _, node := range fromNodes {
+				fmt.Printf("%s ", node.toString())
+			}
+			for _, node := range toNodes {
+				fmt.Printf("%s ", node.toString())
+			}
+			fmt.Printf("\n")
+		} else if len(fromNodes) != 0 { // quadratic blowup comes from this nested loop...
 			for i := 0; i < len(fromNodes); i++ {
 				for j := 0; j < len(toNodes); j++ {
 					fmt.Println(
