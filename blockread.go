@@ -150,27 +150,7 @@ func dumpDBAllHeaders(lvdb *leveldb.DB) (hmap map[[32]byte][]byte) {
 		copy(v[:], iter.Value()) // blarg have to copy everything because leveldb
 		hmap[curHash] = v
 	}
-	/*
-			k := iter.Key()
 
-			var revhash [32]byte
-			for i, _ := range revhash {
-				revhash[i] = k[32-i]
-			}
-
-			v := iter.Value()
-			buf := bytes.NewBuffer(v[len(v)-80:])
-			hed := new(wire.BlockHeader)
-			err := hed.Deserialize(buf)
-			if err != nil {
-				fmt.Printf("%s\n", err.Error())
-			}
-
-			// v = v[80:]
-			// fmt.Printf("%x\n", revhash)
-			fmt.Printf("%s xtra: %x\n", hed.BlockHash().String(), v[:len(v)-80])
-		}
-	*/
 	iter.Release()
 	err := iter.Error()
 	if err != nil {

@@ -17,12 +17,12 @@ func txStream(txChan chan *wire.MsgTx) {
 		panic(err)
 	}
 
-	//info, err := idxFile.Stat()
+	info, err := idxFile.Stat()
 	if err != nil {
 		panic(err)
 	}
-	//maxHeight := info.Size() / 6 // max height based on index file size
-	maxHeight := 100000
+	maxHeight := info.Size() / 6 // max height based on index file size
+	// maxHeight := 100000
 	curBlockFile := new(os.File)
 	curBlockFileNum := uint16(1 << 15)
 
@@ -100,6 +100,7 @@ func graphGenerate(txChan chan *wire.MsgTx) {
 					m[hashOutpoint(tx.TxIn[row].PreviousOutPoint)]
 				if pres {
 					fromNodes = append(fromNodes, prevAddress)
+					delete(m, hashOutpoint(tx.TxIn[row].PreviousOutPoint))
 				}
 			}
 			if row < len(tx.TxOut) {
